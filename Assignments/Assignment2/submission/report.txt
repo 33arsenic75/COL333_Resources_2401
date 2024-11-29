@@ -1,0 +1,62 @@
+Abhinav Rajesh Shripad : 2022CS11596, Jahnabi Roy : 2022CS11094
+
+Title : GamePlaying AI
+
+*Core Ideas of the Algorithm*
+
+This algorithm utilizes Monte Carlo Tree Search (MCTS) combined with Rapid Action Value Estimation (RAVE) and Frames to efficiently explore and identify optimal moves in the game of Havannah.
+
+1. Monte Carlo Tree Search (MCTS)
+
+MCTS is a decision-making algorithm used in domains like board games. It builds a search tree over possible game states through random simulations and learns which actions lead to better outcomes. The core phases of MCTS are:
+
+- Selection: Starting from the root node, the algorithm selects child nodes based on a policy such as the Upper Confidence Bound (UCB1), which balances exploration and exploitation. 
+The UCB1 is calculated according to the formula = (wins of child i)/(visits to child i) + C * sqrt(log(total visits to parent)/ visits to child i). The parameter was finetuned by allowing up to 1000 iterations of the agent, in the range from C = 1.4-1.6. We finalised C = 1.5 to be the most optimal. The formula balances exploitation and exploration.
+- Expansion: When an unvisited node is encountered, it is added to the tree as a new child node.
+- Simulation: From this newly expanded node, a random simulation is conducted, continuing until a terminal state is reached (i.e., the game ends).
+- Backpropagation: The outcome of the simulation is propagated back through the selected nodes, updating their value estimates to improve future decisions.
+
+MCTS works by progressively refining the decision tree through repeated simulations, allowing it to converge on the best actions as more simulations are performed. The number of iterations for MCTS has also been checked and refined according to the board size. Time factor is used to allow for more iterations if time is left, and Move factor allows for more iterations if enough moves are left. This helps in exploring the search space better and getting better results. For board size 4, the base iterations are kept at 1050, time factor is scaled by 200 and move factor is scaled by 10. For board size 6, base iterations are kept at 5000, time factor is scaled by 400 and move factor scaled by 15.
+
+2. Rapid Action Value Estimation (RAVE)
+
+We can keep a winning rate for each move during the rollouts and use this to encourage exploration of moves that do well during rollouts. This winning rate is called the Rapid Action Value Estimate (RAVE). RAVE experience is gathered more quickly than by pure experience alone, though it is less correlated to success, and so should be phased out as real experience is gained. For a given node n, n.r is the RAVE winning rate and n.m is the number of RAVE updates.
+
+Usually RAVE experience and real experience are combined as a linear combination, starting as only RAVE experience and asymptotically approaching only real experience. RAVE is an enhancement over basic MCTS, designed to speed up the convergence of action value estimates.
+
+Formula	:	β ∗ni.v + (1 −β) ∗ni.r 
+β was experimented with different constant values (0.4-0.6) but did not get very good results. The following equation with k parameter finetuned to k=500 gave the best results.
+β = k/(k + ni.n) ; where k = 500.
+
+RAVE is an enhancement over basic MCTS, designed to speed up the convergence of action value estimates. Instead of considering only actions taken on the current search path, RAVE considers all occurrences of actions in any part of the search tree. This modification allows the algorithm to :
+
+- Share information between different parts of the tree, effectively speeding up the learning process.
+- Converge faster by using an estimated value of an action from other states, thereby improving early estimates and leading to more efficient simulations.
+
+In practice, RAVE leads to a large increase in playing strength for games such as Go and Havannah where the assumption that a good move is also good if played earlier holds. The RAVE updates often lead to sufficiently large exploration that the constant in the UCT exploration term is set very low or even to 0, removing UCT exploration altogether.
+
+3. Frames in MCTS
+
+Inspiration from the link : https://www.youtube.com/watch?v=BO0UPhWsB1U
+
+Focus point of Havana strategy is the dilemma between speed (that's the initiative) and safety, because the direct connection is not always the best connection. A connection based on "kites" is called frame. Because there are three structures to win the game, there are also three types of frames - Fork Frame, Bridge Frame and Ring Frame. 
+
+A fork frame requires four to five stones and connects three sides, allowing for multiple connection opportunities. A bridge frame needs at least six stones and is formed by placing stones in a way that secures a corner connection. A ring frame requires at least seven stones and forms a closed loop, creating a strong connection that is hard to interrupt.
+
+Frames are chosen for several reasons :-  
+1. Frames provide multiple pathways to complete shapes like forks, bridges, or rings, enhancing strategic options.  
+2. Kite offers protection against opponent interruptions, making it harder for them to block connections.  
+3. Frames can adapt to changing game dynamics, allowing players to pivot their strategies based on their opponent's moves.
+
+`get_frame_cells` calculates potential frame cells around a stone placed by the player on the board. It uses predefined relative coordinates to identify positions around the current cell, forming a frame-like structure. The function returns a list of valid frame cells around the given stone. Agent probabilistically selects a frame move (with some randomness) based on game state conditions. Agent checks if there are any frames to prioritize making a move within this set of calculated cells.
+
+*Integration of MCTS, RAVE, and Frames*
+
+The integration of MCTS with RAVE and Frames leads to a powerful combination for game decision-making:
+
+1.MCTS provides the underlying structure for searching the decision space.
+
+2. RAVE accelerates the search by sharing knowledge about actions across different game states, allowing the algorithm to converge more quickly on good moves.
+
+3. Frames introduce domain knowledge, further refining the search process by guiding simulations towards moves that match known successful patterns.
+
